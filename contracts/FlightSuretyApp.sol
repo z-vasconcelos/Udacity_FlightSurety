@@ -11,6 +11,8 @@ import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 /************************************************** */
 contract FlightSuretyApp {
     using SafeMath for uint256; // Allow SafeMath functions to be called for all uint256 types (similar to "prototype" in Javascript)
+    
+    FlightSuretyData flightSuretyData; // Instance FlightSuretyData
 
     /********************************************************************************************/
     /*                                       DATA VARIABLES                                     */
@@ -25,6 +27,7 @@ contract FlightSuretyApp {
     uint8 private constant STATUS_CODE_LATE_OTHER = 50;
 
     address private contractOwner;          // Account used to deploy contract
+    bool private operational = true;        // Blocks all state changes throughout the contract if false
 
     struct Flight {
         bool isRegistered;
@@ -33,7 +36,6 @@ contract FlightSuretyApp {
         address airline;
     }
     mapping(bytes32 => Flight) private flights;
-
  
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
@@ -50,7 +52,7 @@ contract FlightSuretyApp {
     modifier requireIsOperational() 
     {
          // Modify to call data contract's status
-        require(true, "Contract is currently not operational");  
+        require(operational, "Contract is currently not operational");  
         _;  // All modifiers require an "_" which indicates where the function body will be added
     }
 
@@ -73,6 +75,7 @@ contract FlightSuretyApp {
     */
     constructor
                                 (
+
                                 ) 
                                 public 
     {
@@ -84,11 +87,26 @@ contract FlightSuretyApp {
     /********************************************************************************************/
 
     function isOperational() 
-                            public 
-                            pure 
+                            public  
+                            requireContractOwner
                             returns(bool) 
     {
-        return true;  // Modify to call data contract's status
+        return operational;  // Modify to call data contract's status
+    }
+
+    /**
+    * @dev Sets contract operations on/off
+    *
+    * When operational mode is disabled, all write transactions except for this one will fail
+    */    
+    function setOperatingStatus
+                            (
+                                bool mode
+                            ) 
+                            external
+                            requireContractOwner 
+    {
+        operational = mode;
     }
 
     /********************************************************************************************/
@@ -100,15 +118,26 @@ contract FlightSuretyApp {
     * @dev Add an airline to the registration queue
     *
     */   
+
     function registerAirline
                             (   
+                                bool isActive,
+                                address airlineAddress
                             )
-                            external
-                            pure
                             returns(bool success, uint256 votes)
     {
-        return (success, 0);
+        flightSuretyData._registerAirline(isActive, airlineAddress);
+        return (true, 0);
     }
+
+    // function fetchAirlines
+    //                     (  
+    //                     )
+    //                     external
+    //                     returns(bytes32 airlines)
+    // {
+    //     return airlines;
+    // }
 
 
    /**
@@ -116,12 +145,12 @@ contract FlightSuretyApp {
     *
     */  
     function registerFlight
-                                (
+                                (                                    
                                 )
                                 external
                                 pure
     {
-
+        
     }
     
    /**
@@ -237,9 +266,6 @@ contract FlightSuretyApp {
         return oracles[msg.sender].indexes;
     }
 
-
-
-
     // Called by oracle when a response is available to an outstanding request
     // For the response to be accepted, there must be a pending request that is open
     // and matches one of the three Indexes randomly assigned to the oracle at the
@@ -335,3 +361,7 @@ contract FlightSuretyApp {
 // endregion
 
 }   
+
+contract FlightSuretyData {
+    function _registerAirline(bool isActive, address airlineAddress) external;
+}

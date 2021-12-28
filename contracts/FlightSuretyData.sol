@@ -9,8 +9,13 @@ contract FlightSuretyData {
     /*                                       DATA VARIABLES                                     */
     /********************************************************************************************/
 
-    address private contractOwner;                                      // Account used to deploy contract
-    bool private operational = true;                                    // Blocks all state changes throughout the contract if false
+    address private contractOwner;         // Account used to deploy contract
+    bool private operational = true;       // Blocks all state changes throughout the contract if false
+
+    struct Airline {
+        bool isActive;
+    }
+    mapping(address => Airline) private airlines;
 
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
@@ -73,7 +78,6 @@ contract FlightSuretyData {
         return operational;
     }
 
-
     /**
     * @dev Sets contract operations on/off
     *
@@ -89,6 +93,14 @@ contract FlightSuretyData {
         operational = mode;
     }
 
+    function authorizeCaller
+                            (
+
+                            )
+    {
+
+    }
+
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
@@ -98,12 +110,19 @@ contract FlightSuretyData {
     *      Can only be called from FlightSuretyApp contract
     *
     */   
-    function registerAirline
-                            (   
+    function _registerAirline
+                            (
+                                bool isActive,
+                                address airlineAddress
                             )
                             external
-                            pure
+                            returns(bool)
     {
+        airlines[airlineAddress] = Airline({
+            isActive: isActive
+        });
+
+        return(true);
     }
 
 
@@ -168,6 +187,17 @@ contract FlightSuretyData {
                         returns(bytes32) 
     {
         return keccak256(abi.encodePacked(airline, flight, timestamp));
+    }
+
+    function getAirlineKey
+                        (
+                            address airline
+                        )
+                        pure
+                        internal
+                        returns(bytes32) 
+    {
+        return keccak256(abi.encodePacked(airline));
     }
 
     /**

@@ -10,9 +10,8 @@ module.exports = {
     },
     rinkeby: {
       provider: () => new HDWalletProvider(mnemonic, 'https://mainnet.infura.io/v3/b3d19109d43642a5a916742f919c0081'),
-        network_id: 4,
-        gas: 4500000,       
-        gasPrice: 10000000000
+        network_id: 4,      
+        gasPrice: 9999999
     }
   },
   compilers: {
