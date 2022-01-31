@@ -1,12 +1,30 @@
 <!doctype html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>FlightSurety</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+    <style type="text/css">
+        .hidden{
+            display: none;
+        }
+
+        .white-line {
+            border-color: gray;
+        }
+
+        .mt03{
+            margin-top: 32px;
+        }
+
+        .v-align{
+            display: flex;
+            align-items: center;
+        }
+    </style>
 </head>
 
 <body>
@@ -21,11 +39,161 @@
 
     <main class="container">
 
-        <div id="display-wrapper" class="top-20">
+        <div id="display-wrapper" class="user-data top-20">
         </div>
+
+        <!-- Set Form for Airlines or Passengers -->
+        <hr class="divider white-line">
         <div class="row top-20">
-            <label class="form">Flight</label> <input type="text" id="flight-number"> <btn class="btn btn-primary" id="submit-oracle">Submit to Oracles</btn>
+            <div class="col-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="mode-select" id="airline-mode" value="1" checked>
+                    <label class="form-check-label" for="exampleRadios1">
+                        Airline Mode
+                    </label>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="mode-select"  id="passenger-mode" value="2">
+                    <label class="form-check-label" for="exampleRadios2">
+                        Passenger Mode
+                    </label>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="" id="debug-mode">
+                    <label class="form-check-label" for="flexCheckDefault">
+                        Debug Options
+                    </label>
+                </div>
+            </div>
         </div>
+        <hr class="divider white-line">
+        <!-- end User Data -->
+
+        
+        
+        <!-- User Data -->
+        <div id="debug-section" class="hidden">
+            <div class="row top-20">
+                <div class="col-12">
+                    <label class="form">Console Ganache Adresses</label><btn class="btn btn-primary" id="bt-get-addresses">Log</btn>
+                </div>
+            </div>
+            <br/>
+            <!-- end User Data -->
+            <h4>Check Airline</h4>
+            <div class="row top-20">                
+                <div class="col-6">
+                    <label class="form" >Airline to Check</label>
+                    <input type="text" id="check-register-airline" style="width: 100%;">
+                </div>
+                <div class="col-6 v-align">
+                    <btn class="btn btn-primary" id="bt-check-register-airline">Verify</btn>
+                </div>
+            </div>
+            <div class="row top-20">
+                <div class="col-4">
+                    <label class="form">Is Airline Registered?</label> <span id="isRegistered">...</span>
+                </div>
+                <div class="col-4">
+                    <label class="form">Is Airline Validated?</label> <span id="isValidated">...</span>
+                </div>
+                <div class="col-4">
+                    <label class="form">Is Airline Funded?</label> <span id="isFunded">...</span>
+                </div>
+            </div>
+            <div class="row top-20 ">
+                <div class="col-6">
+                    <label class="form">Amount of Votes</label>
+                    <input type="text" id="get-vote-number" style="width: 100%;">
+                </div>
+                <div class="col-2 v-align">
+                    <btn class="btn btn-primary" id="bt-get-vote-number">Get Votes</btn>
+                </div>
+                <div class="col-4 v-align">
+                    <label class="form">Number of votes: </label> <span id="voteNumber">...</span>
+                </div>
+            </div>
+            <div class="row top-20 ">
+                <div class="col-4 v-align">
+                    <label class="form">Contract Balance</label>
+                    <btn class="btn btn-primary" id="bt-get-contract-balance">Get Contract Balance</btn>
+                </div>
+                <div class="col-8 v-align">
+                    <span id="contractBalance"></span>
+                </div>
+            </div>
+            <br/>
+            <hr class="divider white-line">
+        </div>
+
+        <!-- Airline Section -->
+        <div id="display-wrapper" class="airline-section mt03">
+        </div>
+        <div id="airline-section" class="">
+            <h4>Airline Control</h4>
+            <div class="row top-20">
+                <div class="col-4">
+                    <label class="form">Register Airline - Address</label>
+                    <input type="text" id="register-airline" style="width: 100%;" placeholder="Airline Address">
+                </div>
+                <div class="col-4">
+                    <label class="form">Register Airline - Name</label>
+                    <input type="text" id="register-airline" style="width: 100%;" placeholder="Airline Name">
+                </div>
+                <div class="col-4 v-align">
+                    <btn class="btn btn-primary" id="bt-register-airline">Register Airline</btn>
+                </div>
+            </div>
+            <div class="row top-20">
+                <div class="col-8">
+                    <label class="form">Vote for Airline</label>
+                   <input type="text" id="voteIn-airline" style="width: 100%;" placeholder="Airline to Vote in">
+                </div>
+                <div class="col-4 v-align">
+                    <btn class="btn btn-primary" id="bt-voteIn-airline">Vote</btn>
+                </div>
+            </div>
+            <div class="row top-20">
+                <div class="col-4">
+                    <label class="form">Fund Airline</label>
+                    <input type="text" id="fund-airline" style="width: 100%;" placeholder="Airline to Fund">
+                </div>
+                <div class="col-4">
+                    <label class="form">Fund Value (in ether)</label>
+                    <input type="number" id="fund-airline-value" style="width: 100%;" placeholder="Min. 10 ether">
+                </div>
+                <div class="col-4 v-align">
+                    <btn class="btn btn-primary" id="bt-fund-airline">Fund</btn>
+                </div>
+            </div>
+            <br/>
+            <h6>Flight Control</h6>
+            <div class="row top-20">
+                <div class="col-8">
+                    <label class="form">Register Flight</label>
+                    <input type="text" id="register-flight" style="width: 100%;" placeholder="Flight to Register">
+                </div>
+                <div class="col-4 v-align">
+                    <btn class="btn btn-primary" id="bt-register-flight">Register Flight</btn>
+                </div>
+            </div>
+        </div>
+        <!-- end Airline Section -->
+
+        <!-- Passenger Section -->
+        <div id="passenger-section" class="hidden">
+            <div id="display-wrapper" class="passenger-section top-20">
+            </div>
+            <div class="row top-20">
+                <label class="form">Flight Number</label> <input type="text" id="flight-number"> <btn class="btn btn-primary" id="submit-oracle">Submit to Oracles</btn>
+            </div>
+        </div>
+        <!-- end Passenger Section -->
+
     </main>
 
 </body>

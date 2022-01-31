@@ -16,8 +16,16 @@ To install, download or clone the repo, then:
 To run truffle tests:
 
 `truffle test ./test/flightSurety.js`
-`truffle test ./test/oracles.js`
 `truffle test ./test/testFunctions.js`
+
+For testing consensus you will need more than 50 airlines registered, use:
+`ganache-cli --accounts=100`
+than:
+`truffle test ./test/airlineRubricTests.js`
+
+For Oracles test we need 20 accounts for testing
+`ganache-cli --accounts=21`
+`truffle test ./test/oracles.js`
 
 To use the dapp:
 
@@ -55,6 +63,36 @@ Deploy the contents of the ./dapp folder
 #Call function
 https://trufflesuite.com/docs/truffle/getting-started/interacting-with-your-contracts.html
 
-let instance = await FlightSuretyApp.deployed()
 let accounts = await web3.eth.getAccounts()
-instance.registerAirline(true, accounts[2])
+let instanceApp = await FlightSuretyApp.deployed()
+let instanceData = await FlightSuretyData.deployed()
+
+instanceApp.registerAirline(accounts[2], true)
+instanceApp.getFlightKey(accounts[3], 'ND1309', 1640985006)
+instanceApp.registerFlight(accounts[3], 'ND1309', 1640985006)
+
+instanceApp.registerAirline(accounts[2], true)
+instanceData.getFlightKey(accounts[3], 'ND1309', 1640985006)
+instanceData.registerFlight(accounts[3], 'ND1309', 1640985006)
+
+//require(flights[flyKey].isRegistered = true, "Flight already registered");
+
+# Rubric Checklist 
+
+## Airline
+
+* Can be tested with `truffle test ./test/airlineRubricTests.js`
+*   For this test will be necessary a high number of accounts in ganache
+*   The tests were made using `ganache-cli --accounts=100` 
+
+    OK - Airline Contract Initialization
+        First airline is registered when contract is deployed.
+    OK - Multiparty Consensus 
+        Only existing airline may register a new airline until there are at least four airlines registered
+        Registration of fifth and subsequent airlines requires multi-party consensus of 50% of registered airlines
+    OK - Airline Ante
+        Airline can be registered, but does not participate in contract until it submits funding of 10 ether (make sure it is not 10 wei)
+
+## Passenger   
+
+
