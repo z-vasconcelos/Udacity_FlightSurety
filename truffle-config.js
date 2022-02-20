@@ -7,8 +7,6 @@ module.exports = {
       host: "127.0.0.1",
       port: 8545,
       network_id: "*", // Match any network id
-      accounts: 21,
-      gas: 3000000
     },
     rinkeby: {
       provider: () => new HDWalletProvider(mnemonic, 'https://mainnet.infura.io/v3/b3d19109d43642a5a916742f919c0081'),

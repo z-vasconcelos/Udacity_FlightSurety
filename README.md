@@ -41,6 +41,10 @@ To view dapp:
 `npm run server`
 `truffle test ./test/oracles.js`
 
+* To run servers, needed to install and import babel
+install -> npm install --save @babel/polyfill
+require -> require("@babel/polyfill");
+
 ## Deploy
 
 To build dapp for prod:
@@ -81,7 +85,7 @@ instanceData.registerFlight(accounts[3], 'ND1309', 1640985006)
 
 ## Airline
 
-* Can be tested with `truffle test ./test/airlineRubricTests.js`
+* Can be tested with `truffle test ./test/rubricAirline.js`
 *   For this test will be necessary a high number of accounts in ganache
 *   The tests were made using `ganache-cli --accounts=100` 
 
@@ -93,6 +97,9 @@ instanceData.registerFlight(accounts[3], 'ND1309', 1640985006)
     OK - Airline Ante
         Airline can be registered, but does not participate in contract until it submits funding of 10 ether (make sure it is not 10 wei)
 
+`truffle test ./test/rubricFlight.js`
+
 ## Passenger   
+`truffle test ./test/flight.js`
 
 

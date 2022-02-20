@@ -48,34 +48,63 @@ export default class Contract {
         return(this.accounts);
     }
 
-    fetchFlightStatus(flight, callback) {
+    /********************************************************************************************/
+    /*                                       AIRLINES                                           */
+    /********************************************************************************************/
+    registerAirline(airlineToRegister, nameOfAirline, callback) {
         let self = this;
         let payload = {
-            airline: self.airlines[0],
-            flight: flight,
-            timestamp: Math.floor(Date.now() / 1000)
+            airlineToRegisterAddress: airlineToRegister,
+            airlineName: nameOfAirline
         } 
         self.flightSuretyApp.methods
-            .fetchFlightStatus(payload.airline, payload.flight, payload.timestamp)
-            .send({ from: self.owner}, (error, result) => {
-                callback(error, payload);
+            .registerAirline(payload.airlineToRegisterAddress, payload.airlineName.toString())
+            .send({from: self.owner, gas: 3000000}, (error, result) => {
+                callback(error, result);
             });
     }
 
-    //Airline
-    registerAirline(airlineToRegister, callback) {
+    //Get all airlines
+    getAirlines(callback){
         let self = this;
-        let payload = {
-            airlineToRegisterAddress: airlineToRegister
-        } 
-        self.flightSuretyApp.methods
-            .registerAirline(payload.airlineToRegisterAddress)
-            .send({ from: self.owner}, (error, result) => {
-                callback(error, payload);
-            });
+        self.flightSuretyData.methods
+        .getAirlines()
+        .call({from: self.owner}, callback);
     }
 
-    //Vote
+    //Airline Validation
+    isAirline(airlineToCheck, callback) {
+        let self = this;
+        self.flightSuretyData.methods
+            .isAirline(airlineToCheck)
+            .call({ from: self.owner}, callback);
+    }
+
+    isAirlineValid(airlineToCheck, callback) {
+        let self = this;
+        self.flightSuretyData.methods
+            .isAirlineValid(airlineToCheck)
+            .call({ from: self.owner}, callback);
+    }
+
+    isAirlineFunded(airlineToCheck, callback) {
+        let self = this;
+        self.flightSuretyData.methods
+            .isAirlineFunded(airlineToCheck)
+            .call({ from: self.owner}, callback);
+    }
+
+    getAirlineByName(name, callback) {
+        let self = this;
+        let payload = {
+            airlineName: name
+        } 
+        self.flightSuretyData.methods
+            .getAirlineByName(payload.airlineName)
+            .call({ from: self.owner}, callback);
+    }
+
+    ////////////////////////------ Vote ------////////////////////////
     voteInAirline(airlineToRegister, callback) {
         let self = this;
         let payload = {
@@ -83,7 +112,7 @@ export default class Contract {
         } 
         self.flightSuretyApp.methods
             .vote(payload.airlineToRegisterAddress)
-            .send({from: self.owner}, (error, result) => {
+            .send({from: self.owner, gas: 3000000}, (error, result) => {
                 callback(error, payload);
             });
         //other owner to send in From -> this.accounts[8]
@@ -115,7 +144,14 @@ export default class Contract {
         //other owner to send in From -> this.accounts[8]
     }
 
-    //Fund
+    getVoteAmount(airlineToCheck, callback) {
+        let self = this;
+        self.flightSuretyData.methods
+            .getVoteAmount(airlineToCheck)
+            .call({ from: self.owner}, callback);
+    }
+
+    ////////////////////////------ Fund ------////////////////////////
     fundAirline(airlineAddress, fundValue, callback) {
         let self = this;
         let payload = {
@@ -124,7 +160,7 @@ export default class Contract {
         }
         self.flightSuretyApp.methods
             .fund()
-            .send({from: payload.airlineToFund, value: self.web3.utils.toWei(payload.fund.toString(), "ether")}, (error, result) => {
+            .send({from: payload.airlineToFund, value: self.web3.utils.toWei(payload.fund.toString(), "ether"), gas: 3000000}, (error, result) => {
                 callback(error, result);
             });
         //other owner to send in From -> this.accounts[8]
@@ -145,42 +181,74 @@ export default class Contract {
         //other owner to send in From -> this.accounts[8]
     }
 
-
-    // --------- Validations
-
-    //Airline Validation
-    isAirline(airlineToCheck, callback) {
-        let self = this;
-        self.flightSuretyData.methods
-            .isAirline(airlineToCheck)
-            .call({ from: self.owner}, callback);
-    }
-
-    isAirlineValid(airlineToCheck, callback) {
-        let self = this;
-        self.flightSuretyData.methods
-            .isAirlineValid(airlineToCheck)
-            .call({ from: self.owner}, callback);
-    }
-
-    isAirlineFunded(airlineToCheck, callback) {
-        let self = this;
-        self.flightSuretyData.methods
-            .isAirlineFunded(airlineToCheck)
-            .call({ from: self.owner}, callback);
-    }
-
-    getVoteAmount(airlineToCheck, callback) {
-        let self = this;
-        self.flightSuretyData.methods
-            .getVoteAmount(airlineToCheck)
-            .call({ from: self.owner}, callback);
-    }
-
     getContractBalance(callback) {
         let self = this;
         self.flightSuretyData.methods
             .getContractBalance()
             .call({from: self.owner}, callback);
+    }
+
+    ////////////////////////------ Flights ------////////////////////////
+    
+    //Register a Flight
+    registerFlight(airlineAddress, flightCode, departure, arrival, callback){
+        let self = this;
+        let payload = {
+            airline: airlineAddress,
+            flight: flightCode,
+            from: departure,
+            to: arrival,
+            timestamp: Math.floor(Date.now() / 1000)
+        }
+        self.flightSuretyApp.methods
+            .registerFlight(payload.airline, payload.flight, payload.from, payload.to, payload.timestamp)
+            .send({from: self.owner, gas: 3000000}, (error, result) => {
+                callback(error, result);
+            });
+    }
+
+    //Get Flights from Airline with AirlineAddress
+    getFlights(airlineAddress, callback){
+        let self = this;
+        let payload = {
+            airline: airlineAddress
+        }
+        self.flightSuretyData.methods
+            .getFlights(payload.airline)
+            .call({from: self.owner}, callback);
+    }
+
+    getFlightsData(flightCode, callback){
+        let self = this;
+        let payload = {
+            flightKey: flightCode
+        }
+        self.flightSuretyData.methods
+            .getFlightsData(payload.flightKey)
+            .call({from: self.owner}, callback);
+    }
+
+    getFlightStatus(flightCode, callback){
+        let self = this;
+        let payload = {
+            flightKey: flightCode
+        }
+        self.flightSuretyApp.methods
+            .getFlightStatus(payload.flightKey)
+            .call({from: self.owner}, callback);
+    }
+
+    fetchFlightStatus(airlineAddress, flightName, callback){
+        let self = this;
+        let payload = {
+            airline: airlineAddress,
+            flight: flightName,
+            timestamp: Math.floor(Date.now() / 1000)
+        }
+        self.flightSuretyApp.methods
+            .fetchFlightStatus(payload.airline, payload.flight, payload.timestamp)
+            .send({from: self.owner}, (error, result) => {
+                callback(error, payload);
+            });
     }
 }

@@ -4,7 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>FlightSurety</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
+
     <link rel="icon" type="image/x-icon" href="favicon.ico">
 
     <style type="text/css">
@@ -27,7 +32,7 @@
     </style>
 </head>
 
-<body>
+<body style="padding-bottom: 72px;">
 
     <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
         <a class="navbar-brand" href="#">FlightSurety</a>
@@ -47,7 +52,7 @@
         <div class="row top-20">
             <div class="col-3">
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="mode-select" id="airline-mode" value="1" checked>
+                    <input class="form-check-input" type="radio" name="mode-select" id="airline-mode" value="1">
                     <label class="form-check-label" for="exampleRadios1">
                         Airline Mode
                     </label>
@@ -55,7 +60,7 @@
             </div>
             <div class="col-3">
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="mode-select"  id="passenger-mode" value="2">
+                    <input class="form-check-input" type="radio" name="mode-select" id="passenger-mode" value="2" checked>
                     <label class="form-check-label" for="exampleRadios2">
                         Passenger Mode
                     </label>
@@ -63,7 +68,7 @@
             </div>
             <div class="col-6">
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="" id="debug-mode">
+                    <input class="form-check-input" type="checkbox" id="debug-mode">
                     <label class="form-check-label" for="flexCheckDefault">
                         Debug Options
                     </label>
@@ -118,11 +123,20 @@
                 </div>
             </div>
             <div class="row top-20 ">
-                <div class="col-4 v-align">
+                <div class="col-6">
+                    <label class="form">Airline Flights Registered - show in console</label>
+                    <input type="text" id="get-airline-flights-deb" style="width: 100%;">
+                </div>
+                <div class="col-6 v-align">
+                    <btn class="btn btn-primary" id="bt-get-airline-flights-deb">Get Flights</btn>
+                </div>
+            </div>
+            <div class="row top-20 ">
+                <div class="col-6 v-align">
                     <label class="form">Contract Balance</label>
                     <btn class="btn btn-primary" id="bt-get-contract-balance">Get Contract Balance</btn>
                 </div>
-                <div class="col-8 v-align">
+                <div class="col-6 v-align">
                     <span id="contractBalance"></span>
                 </div>
             </div>
@@ -133,7 +147,7 @@
         <!-- Airline Section -->
         <div id="display-wrapper" class="airline-section mt03">
         </div>
-        <div id="airline-section" class="">
+        <div id="airline-section" class="hidden">
             <h4>Airline Control</h4>
             <div class="row top-20">
                 <div class="col-4">
@@ -142,7 +156,7 @@
                 </div>
                 <div class="col-4">
                     <label class="form">Register Airline - Name</label>
-                    <input type="text" id="register-airline" style="width: 100%;" placeholder="Airline Name">
+                    <input type="text" id="airline-name" style="width: 100%;" placeholder="Airline Name">
                 </div>
                 <div class="col-4 v-align">
                     <btn class="btn btn-primary" id="bt-register-airline">Register Airline</btn>
@@ -173,29 +187,173 @@
             <br/>
             <h6>Flight Control</h6>
             <div class="row top-20">
-                <div class="col-8">
-                    <label class="form">Register Flight</label>
-                    <input type="text" id="register-flight" style="width: 100%;" placeholder="Flight to Register">
+                <div class="col-4">
+                    <label class="form">Register Flight - Airline Address</label>
+                    <input type="text" id="register-flight" style="width: 100%;" placeholder="Airline Address">
+                </div>
+                <div class="col-4">
+                    <label class="form">Register Flight - Flight Code</label>
+                    <input type="text" id="flight-code" style="width: 100%;" placeholder="Flight Code">
+                </div>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-4">
+                    <label class="form">Register Flight - Arrival</label>
+                    <input type="text" id="flight-arrival" style="width: 100%;" placeholder="Flight Code">
+                </div>
+                <div class="col-4">
+                    <label class="form">Register Flight - Departure</label>
+                    <input type="text" id="flight-departure" style="width: 100%;" placeholder="Flight Code">
                 </div>
                 <div class="col-4 v-align">
                     <btn class="btn btn-primary" id="bt-register-flight">Register Flight</btn>
+                </div>                
+            </div>
+            <div class="row top-20">
+                <div class="col-8">
+                    <label class="form">Fetch Flight Code</label>
+                    <input type="text" id="fetch-flight-number" placeholder="Flight Code" style="width: 100%;" placeholder="Flight Code / Name">
+                </div>
+                <div class="col-8">
+                    <label class="form">Fetch Flight Airline</label>
+                    <input type="text" id="fetch-flight-airline" placeholder="Airline Address" style="width: 100%;" placeholder="Flight Code / Name">
+                </div>
+                <div class="col-4 v-align">
+                    <btn class="btn btn-primary" id="submit-oracle">Submit to Oracles</btn>
                 </div>
             </div>
         </div>
         <!-- end Airline Section -->
 
         <!-- Passenger Section -->
-        <div id="passenger-section" class="hidden">
+        <div id="passenger-section" class="">
             <div id="display-wrapper" class="passenger-section top-20">
             </div>
-            <div class="row top-20">
-                <label class="form">Flight Number</label> <input type="text" id="flight-number"> <btn class="btn btn-primary" id="submit-oracle">Submit to Oracles</btn>
+            <h6>Flight Status</h6>
+            <div class="row top-20 hidden">
+                <div class="col-8">
+                    <label class="form">Get Flights from Airline - With Address</label>
+                    <input type="text" id="get-airline-flights" style="width: 100%;" placeholder="Airline Address">
+                </div>
+                <div class="col-4 v-align">
+                    <btn class="btn btn-primary" id="bt-get-airline-flights">Get Flights</btn>
+                </div>
             </div>
+            <h6 class="top-20">I know my flight code:</h6>
+            <div class="row">
+                <div class="col-8">
+                    <label class="form">Flight Code</label>
+                    <input type="text" id="flight-number" style="width: 100%;" placeholder="Flight Code / Name">
+                </div>
+                <div class="col-4 v-align">
+                    <btn class="btn btn-primary" id="submit-oracle">Submit to Oracles</btn>
+                </div>
+            </div>
+            <h6 class="top-20">I do not know my flight code:</h6>
+            <div class="row">
+                <div class="col-4">
+                    <label class="form">Available Airlines</label>
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-primary dropdown-toggle" id="bt-airline-menu" data-toggle="dropdown">
+                          Select Airline
+                        </button>
+                        <div class="dropdown-menu airline-menu" id="dropdown-airlines">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <label class="form">Available Flights</label>
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-primary dropdown-toggle" id="bt-flight-menu" data-toggle="dropdown" disabled>
+                          Select Flight
+                        </button>
+                        <div class="dropdown-menu flight-menu" id="dropdown-flights">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <label class="form">Flight Status:</label><br/>
+                    <span id="flight-status">...</span>
+                </div>
+            </div>
+
+            <h6 class="top-20">List of Available Flights:</h6>
+            <div class="row">
+                <div class="col-4">
+                    <label class="form">Flights by Flight Name</label>
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-primary dropdown-toggle" id="bt-flight-menuByName" data-toggle="dropdown">
+                          Select Flight
+                        </button>
+                        <div class="dropdown-menu flight-menuByName" id="dropdown-flight-menuByName">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <label class="form">Flight Status:</label><br/>
+                    <span id="flight-status-af">...</span>
+                </div>
+            </div>
+            <br/>
+            <div class="row">
+                <div class="col-4">
+                    <label class="form">Flights by Departure Location</label>
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-primary dropdown-toggle" id="bt-flight-menuByDeparture" data-toggle="dropdown">
+                          Select Departure
+                        </button>
+                        <div class="dropdown-menu flight-menuByDeparture" id="dropdown-flight-menuByDeparture">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <label class="form">Select Flights</label>
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-primary dropdown-toggle" id="bt-flight-menuByDeparture-selectFlight" data-toggle="dropdown" disabled>
+                          Select Flight
+                        </button>
+                        <div class="dropdown-menu flight-menuByDeparture-selectFlight" id="dropdown-flight-menuByDeparture-selectFlight">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <label class="form">Flight Status:</label><br/>
+                    <span id="flight-status-ad">...</span>
+                </div>              
+            </div>
+            <br/>
+            <!-- <div class="row">
+                <div class="col-3">
+                    <label class="form">Flights by Arrival Location</label>
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-primary dropdown-toggle" id="bt-flight-menuByArrival" data-toggle="dropdown">
+                          Select Arrival
+                        </button>
+                        <div class="dropdown-menu flight-menuByArrival" id="dropdown-flight-menuByArrival">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <label class="form">Select Flights</label>
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-primary dropdown-toggle" id="bt-flight-menuByArrival-selectFlight" data-toggle="dropdown" disabled>
+                          Select Flight
+                        </button>
+                        <div class="dropdown-menu flight-menuByArrival-selectFlight" id="dropdown-flight-menuByArrival-selectFlight">
+                        </div>
+                    </div>
+                </div>  
+            </div> -->
+
+            <h6 class="top-20">Flight Insurance</h6>
+            <label>1 - Passengers may pay up to 1 ether for purchasing flight insurance.</label>
+            <label>2 - If flight is delayed due to airline fault, passenger receives credit of 1.5X the amount they paid.</label>
+            <label>3 - Passenger can withdraw any funds owed to them as a result of receiving credit for insurance payout.</label>
+            <label>4 - Insurance payouts are not sent directly to passengers wallet.</label>
         </div>
         <!-- end Passenger Section -->
-
     </main>
-
 </body>
 
 </html>
