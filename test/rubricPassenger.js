@@ -1,7 +1,7 @@
 var Test = require('../config/testConfig.js');
 var BigNumber = require('bignumber.js');
 
-contract('passenger', async (accounts) => {
+contract('PassengerRubric', async (accounts) => {
 
   var config;
   before('setup contract', async () => {
@@ -61,7 +61,7 @@ contract('passenger', async (accounts) => {
     checkInsuranceValue = await config.flightSuretyData.getInsuranceValue(NotOkflighKey, passenger);
 
     //Proccess flight status
-    await config.flightSuretyData._processFlightStatus(airline, flightNotOk, timestamp, 20);
+    await config.flightSuretyData._processFlightStatus(airline, flightNotOk, 20);
 
     let x = new BigNumber(insuranceValue);
     let amountToCredit = x.multipliedBy(1.5);

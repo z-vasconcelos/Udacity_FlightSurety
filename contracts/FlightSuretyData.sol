@@ -622,7 +622,7 @@ contract FlightSuretyData {
     {
         bytes32 insuranceKey = keccak256(abi.encodePacked(flightKey, buyerAddress));
         require(!insurances[insuranceKey].isActive, "You are already insured for this Flight");
-        require(flights[flightKey].statusCode == 0, "This flight insurance has already ended and");
+        require(flights[flightKey].statusCode == 0, "This flight insurance has already ended");
 
         insurances[insuranceKey] = Insurance ({
             isActive: true,
@@ -698,7 +698,7 @@ contract FlightSuretyData {
         require(!insurances[insuranceKey].isCredited, "This insurance was already credited in your account");
         //without a business rule here, someone could aquire an insure and make a direct call in this contrat to add credits and
         //it will not be validated by the rule to check its amount autenticity
-        //Could be set a maximum rule, estimating that the credit could not be 3x greater than the insurance,
+        //Could be set a maximum rule, estimating that the credit could not be Xs greater than the insurance,
         //trying to cover agressive insurance campaings that could appear and reduce fraud losses
         require(!insurances[insuranceKey].possibleFraud, "Your insurance is temporarily blocked. Contact the airline administration.");
         uint256 maxGainAllowed = insurances[insuranceKey].value * 5;
