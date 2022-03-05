@@ -46,12 +46,6 @@ async function submitOracleResponse(airline, flight, timestamp){
     //Get indexes[3] for each Oracle (one registered for each account)
     let oracleIndexes = await flightSuretyApp.methods.getMyIndexes().call({from: accounts[a]});
 
-    //console.log('------------------------------');
-    //console.log("Oracle: ", accounts[a]);
-    //assert(myIndexes = 3, true, "Indexes different from expected size for airline: " + accounts[a]);
-
-    //call get indexes manually to check what it returns
-
     indexes[a] = oracleIndexes;
 
     console.log("loop " + a + " - oracleIndexes: " + oracleIndexes);
@@ -63,11 +57,6 @@ async function submitOracleResponse(airline, flight, timestamp){
         await flightSuretyApp.methods
         .submitOracleResponse(oracleIndexes[idx], airline, flight, timestamp, statusCode)
         .send({from: accounts[a], gas: 3000000});
-        // Check to see if flight status is available
-        // Only useful while debugging since flight status is not hydrated until a 
-        // required threshold of oracles submit a response
-        //let flightStatus = await config.exerciseC6D.viewFlightStatus(flight, timestamp);
-        //console.log('\nPost', idx, oracleIndexes[idx].toNumber(), flight, timestamp, flightStatus);
       }
       catch(e) {
         // Enable this when debugging
@@ -91,33 +80,12 @@ async function waitEvents() {
   //   console.log(event.returnValues.indexes);
   // });
 
-  // //Called in App inside RegisterOracle
-  // flightSuretyApp.events.FetchFlightTest({}, (error, event) => {
-  //   console.log("///////////// FetchFlightTest //////////////");
-  //   console.log(event.returnValues.key);
-  // });
-
-  // flightSuretyApp.events.TestGetKey({}, (error, event) => {
-  //   console.log("------------------ Key Inside ------------------");
-  //   console.log(event.returnValues.key);
-  // });
-
   //Called in App inside fetchFlightStatus
   flightSuretyApp.events.OracleRequest({}, async (error, event) => {
     if(error){
       console.log("Oracle Request Error", error);
     }
     else {
-      // console.log("OracleRequest - Index:");
-      // console.log(event.returnValues.index);
-      // console.log("OracleRequest - Airline:");
-      // console.log(event.returnValues.airline);
-      // console.log("OracleRequest - flight:");
-      // console.log(event.returnValues.flight);
-      // console.log("OracleRequest - Timestamp:");
-      // console.log(event.returnValues.timestamp);
-      // console.log("OracleRequest - Key:");
-      // console.log(event.returnValues.key);
       console.log('------------------------------');
       console.log("Oracle Requested -> index: " + event.returnValues.index + 
                   "; flight: " + event.returnValues.flight + 
@@ -140,13 +108,23 @@ async function waitEvents() {
     console.log("StatusCode :"+ event.returnValues.status);
   });
 
-  //Called Data in function processFlightStatus
-  flightSuretyData.events.FlightStatusProcessed({}, (error, event) => {
-    console.log("/////////////// FlightStatusProcessed //////////////");
-    console.log("flightCode :"+ event.returnValues.flightCode);
-    console.log("flightKey :"+ event.returnValues.flightKey);
-    console.log("statusCode :"+ event.returnValues.statusCode);
+  flightSuretyApp.events.FlightStatusProccessed({}, (error, event) => {
+    console.log('------------------------------');
+    console.log("FlightStatusProccessed");
+    console.log("flightKey :"+ event.returnValues.flight);
+    console.log("StatusCode :"+ event.returnValues.status);
   });
+
+  flightSuretyData.events.FlightStatusUpdated({}, (error, event) => {
+    console.log('------------------------------');
+    console.log("FlightStatusUpdated");
+    console.log(event.returnValues);
+  });
+
+  // flightSuretyApp.events.OracleReport({}, (error, event) => {
+  //   console.log("/////////////// OracleReport //////////////");
+  //   console.log(event.returnValues);
+  // })
 }
 
 registerOracles();

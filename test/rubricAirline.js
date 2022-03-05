@@ -49,7 +49,7 @@ contract('airlineRubric', async (accounts) => {
     }    
     let whileMoreThan4 = await config.flightSuretyApp.isAirlineRegistered.call(airlineToRegister);
 
-    assert.equal(whileLessThan4, false, "A Non registered airline could not register a new one after ther are at last 4 airlines registered");
+    assert.equal(whileLessThan4, false, "A Non registered airline could not be able to register a new one after ther are at last 4 airlines registered");
     assert.equal(whileMoreThan4, true, "A Non registered airline should be able register a new one after ther are already 4 airlines registered");
   });
 

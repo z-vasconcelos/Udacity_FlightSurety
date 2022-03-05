@@ -35,6 +35,9 @@ contract FlightSuretyApp {
     //Votes Business Rules
     uint256  private VOTES_MIN_FOR_REGISTRATION = 4;
 
+    //Passenger Rules
+    uint256  private constant INSURANCE_MAX_VALUE = 1 ether;
+
     //use to set dataContract inside constructor
     address payable dataContractAddress;
 
@@ -48,11 +51,9 @@ contract FlightSuretyApp {
     event MinVotesForAirlineRegisterUpdated (uint8 numberOfVotesRequested);
 
     event OracleRegistered(address oracle);
+    event FlightStatusProccessed(address airline, string flight, uint256 timestamp, uint8 status);
 
-    event testRegister (uint airlineRegNumb);
-    event registerLog (uint8 statusCode);
-    event FetchFlightTest (bytes32 key);
-    event TestGetKey (string obs, bytes32 key);
+    event InsuranceAquired1 (bytes32 flightKey, address buyerAddress, uint256 insuranceValue);
  
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
@@ -156,14 +157,105 @@ contract FlightSuretyApp {
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
 
+    //1 - Passengers may pay up to 1 ether for purchasing flight insurance.
+    function buyInsurance
+                        (
+                            bytes32 flightKey
+                        )
+                        requireIsOperational
+                        public
+                        payable
+    {
+        require(!flightSuretyData.isAirlineRegistered(msg.sender), "An Airline can not be insured for its own Flights");
+        //Check value
+        //Passengers may pay up to 1 ether for purchasing flight insurance.
+        uint256 insuranceValue = msg.value;
+        require(insuranceValue <= INSURANCE_MAX_VALUE, "The max insurance amount allowed is 1 ether");
+
+        //--check if airline funnds can cover the purchase
+        //get airline funds
+        address airlineAddress = flightSuretyData.getFlightAirline(flightKey);
+        uint256 insuranceAirlineFunds = flightSuretyData.getAirlineFund(airlineAddress);
+
+        require(insuranceAirlineFunds >= insuranceValue, "The Airline is with pending information for this flight. For your protection, this transaction is not possible now");
+        //--check if airline funds can cover the purchase
+
+        emit InsuranceAquired1(flightKey, msg.sender, insuranceValue);
+
+        flightSuretyData.buy(flightKey, msg.sender, insuranceValue);
+
+        payable(address(dataContractAddress)).transfer(insuranceValue);
+    }
+
+    //2 - If flight is delayed due to airline fault, passenger receives credit of 1.5X the amount they paid.
+    function calculateInsurance
+                                (
+                                    uint256 insuranceValue
+                                )
+                                internal
+                                pure
+                                returns(uint256 amounsToCover)
+    {
+        uint256 amountToCredit = insuranceValue + (insuranceValue * 50 / 100);
+        return(amountToCredit);
+    }
+
+    function creditInsuree
+                                (
+                                    bytes32 delayedFlight,
+                                    address insuree
+                                )
+                                requireIsOperational
+                                public
+    {
+        //confirm flight status
+        require(flightSuretyData.getFlightStatus(delayedFlight) == 20, "This flight status is not covered by the insurance");
+        
+        //call service to check insurance value and amount to credit
+        uint256 insuranceValue = flightSuretyData.getInsuranceValue(delayedFlight, insuree);
+        uint256 amountToCredit = calculateInsurance(insuranceValue);
+
+        //credit insurance
+        flightSuretyData.creditInsuree(insuree, delayedFlight, amountToCredit);
+    }
+
+    function getInsuranceData(
+                                bytes32 insuranceKey
+                            )
+                            public
+                            view
+    {
+        flightSuretyData.getInsuranceData(insuranceKey);
+    }
+
+    function payInsuree
+                        (
+                            uint256 amountToWithdraw
+                        )
+                        requireIsOperational
+                        public
+    {
+        uint256 insureeCredits = flightSuretyData.getInsureeCredits(msg.sender);
+        require(amountToWithdraw > 0, "Please insert a value greater than 0 to a withdraw request");
+        require(insureeCredits >= amountToWithdraw, "You do not have enough credit for this transaction");
+    
+        flightSuretyData.pay(msg.sender, amountToWithdraw);
+    }
+
+    function getInsureeAvailableCredits
+                                        (
+                                        )
+                                        public
+                                        view
+                                        returns(uint256 insureeCredits)
+    {
+        return(flightSuretyData.getInsureeCredits(msg.sender));
+    }
   
    /**
     * @dev Add an airline to the registration queue
     *
     */   
-    function getDataContractAddress() public view returns(address){
-        return(dataContractAddress);
-    }
 
     //write
     function registerAirline
@@ -171,8 +263,8 @@ contract FlightSuretyApp {
                                 address airlineToRegisterAddress,
                                 string memory airlineName
                             )
-                            public
                             requireIsOperational
+                            public
     {
         require(!flightSuretyData.isAirlineRegistered(airlineToRegisterAddress), "Airline is already registered.");
 
@@ -184,7 +276,7 @@ contract FlightSuretyApp {
             flightSuretyData.setAirlinePendingRegister(airlineToRegisterAddress, airlineName);
         }else {
             //Only existing airline may register a new airline until there are at least FOUR airlines registered
-            if(numberOfRegisteredAirlines <= 3){
+            if(numberOfRegisteredAirlines <= 2){
                 require(flightSuretyData.isAirlineRegistered(msg.sender), "Caller is not a registered airline. Minimun amount airlines not achieved for non registered airline be able to register new ones");
                 flightSuretyData.registerAirline(airlineToRegisterAddress, airlineName);
             } else {
@@ -212,9 +304,9 @@ contract FlightSuretyApp {
                                     string memory to,
                                     uint256 timestamp
                                 )
-                                public
                                 requireIsOperational
                                 requireIsAirlineFunded
+                                public
     {   
         uint8 flightStatus = STATUS_CODE_UNKNOWN;
         flightSuretyData.registerFlight(airlineAddress, flightName, from, to, timestamp, flightStatus);
@@ -252,10 +344,11 @@ contract FlightSuretyApp {
                                     uint256 timestamp,
                                     uint8 statusCode
                                 )
-                                internal
                                 requireIsOperational
+                                public
     {
-        flightSuretyData.processFlightStatus(airline, flight, timestamp, statusCode);
+        emit FlightStatusProccessed(airline, flight, timestamp, statusCode);
+        flightSuretyData._processFlightStatus(airline, flight, statusCode);
     }
 
 
@@ -289,28 +382,12 @@ contract FlightSuretyApp {
                 requireIsAirlineRegistered
                 requireIsAirlineValid
     {
-        //                returns(bool funded, address airlineFunded, uint val, address contractAddress, address dataC, uint bal)
-        
         //Check Fund value
         require(msg.value >= AIRLINE_REGISTRATION_FEE, "Minimum funding is at last 10 Ether");
 
-        //uint8 rKey = uint8(uint256(keccak256(abi.encodePacked(msg.sender, block.timestamp, block.difficulty)))%251);
-        //bytes32 key = keccak256(abi.encodePacked(index, airline, flight, timestamp)); 
-
-        //flightSuretyData.registerFundValidation(rKey, msg.sender);
-        //bool isFunded = flightSuretyData.fund(msg.sender, msg.value);
         flightSuretyData.fund(msg.sender, msg.value);
 
-        //ref https://ethereum.stackexchange.com/questions/65693/how-to-cast-address-to-address-payable-in-solidity-0-5-0
-        //FlightSuretyData addr = FlightSuretyData(dataContractAddress);
-        //address payable wallet = address(uint160(address(addr)));
-
         payable(address(dataContractAddress)).transfer(msg.value);
-        //address(flightSuretyData).transfer(msg.value);
-
-        //flightSuretyData.fund(msg.sender, rKey);        
-
-        //return(true, msg.sender, msg.value, flightSuretyData, dataContractAddress, address(msg.sender).balance);
     }
 
     function vote
@@ -322,14 +399,12 @@ contract FlightSuretyApp {
                 requireIsAirlineValid
                 requireIsAirlineFunded
                 public
-                returns(string memory obs, bool status, address votedBy, address toVote)
     {
         require(flightSuretyData.isAirlineRegistered(airlineToVoteAddress), "You can not vote in a airline that is not registered");
 
         bool voteValidationStatus;        
         uint256 numberOfRegisteredAirlines = flightSuretyData.getAmountOfAirlinesRegistered();
         uint256 voteAmount = flightSuretyData.getVoteAmount(airlineToVoteAddress);
-        string memory observation = "N/A";
         
         //#Airlines 03
         //Registration of fifth and subsequent airlines requires multi-party consensus of 50% of registered airlines
@@ -339,25 +414,21 @@ contract FlightSuretyApp {
             //If it is less, check if airline has more than 4 votes to be validated
             if((voteAmount + 1) >= VOTES_MIN_FOR_REGISTRATION){
                 voteValidationStatus = true;
-                observation = "voteAmount > VOTES_MIN_FOR_REGISTRATION";
             } else {
                 voteValidationStatus = false;
-                observation = "voteAmount < VOTES_MIN_FOR_REGISTRATION";
             }
         } else {
             //If it is more or equal 50, check if airline has votes from more than 50% of the registered airlines to be validated
             if(voteAmount > (numberOfRegisteredAirlines/2)){
                 voteValidationStatus = true;
-                observation = "voteAmount > (numberOfRegisteredAirlines/2)";
                 flightSuretyData.setAirlineOutPendingRegister(airlineToVoteAddress);
             } else {
                 voteValidationStatus = false;
-                observation = "voteAmount < (numberOfRegisteredAirlines/2)";
             }        
         }
 
-        address validationStatus = flightSuretyData.vote(airlineToVoteAddress, msg.sender, voteValidationStatus);   
-        return(observation, voteValidationStatus, validationStatus, airlineToVoteAddress);
+        //Vote. The vote validation is updated above
+        flightSuretyData.vote(airlineToVoteAddress, msg.sender, voteValidationStatus);   
     }
 
     function checkAirlineVote
@@ -365,8 +436,9 @@ contract FlightSuretyApp {
                                 address airlineAddress
                             )
                             public
+                            returns(bool status, uint256 numVotes)
     {
-        flightSuretyData.checkAirlineVote(airlineAddress);
+        return(flightSuretyData.checkAirlineVote(airlineAddress));
     }
 
 // region ORACLE MANAGEMENT
@@ -473,6 +545,7 @@ contract FlightSuretyApp {
         if (oracleResponses[key].responses[statusCode].length >= MIN_RESPONSES) {
 
             emit FlightStatusInfo(airline, flight, timestamp, statusCode);
+            //emit FlightStatusProccessed(airline, flight, timestamp, statusCode);
 
             // Handle flight status as appropriate
             processFlightStatus(airline, flight, timestamp, statusCode);
@@ -538,18 +611,36 @@ abstract contract FlightSuretyData {
     function setAirlinePendingRegister(address airlineAddress, string memory airlineName) virtual external;
     function setAirlineOutPendingRegister(address airlineAddress) virtual external;
     //airline fund
-    function fund(address airlineAddress, uint fundValue) virtual external returns(bool);
+    function fund(address airlineAddress, uint fundValue) virtual external;
     function registerFundValidation(uint8 rKey, address caller) virtual external;  
     //airline vote
     function isAprovedInVotation(address airlineAddress) virtual external view returns(bool);
-    function vote(address airlineToVoteAddress, address voter, bool voteValidationStatus) virtual external returns(address votedBy);
-    function checkAirlineVote(address airlineAddress) virtual external;
+    function vote(address airlineToVoteAddress, address voter, bool voteValidationStatus) virtual external;
+    function checkAirlineVote(address airlineAddress) virtual external returns(bool status, uint256 numVotes)   ;
     function getVoteAmount(address airlineAddress) virtual public view returns(uint256);
     //flight
     function registerFlight(address airlineAddress, string calldata flightName, string memory from, string memory to, uint256 timestamp, uint8 flightStatus) virtual external;
-    function processFlightStatus(address airline, string calldata flight, uint256 timestamp, uint8 statusCode) virtual external;
+    function _processFlightStatus(address airline, string calldata flight, uint8 statusCode) virtual external;
     function getFlights(address airlineAddress) virtual public returns(string[] memory flightNames, bytes32[] memory flightCodes);
     function getFlightStatus(bytes32 flightCode) virtual public view returns(uint8 flightStatusCode);
+    function getFlightsData(bytes32 flightKey) virtual public view returns(
+                                                                                string memory flightCode,        
+                                                                                uint8 statusCode,
+                                                                                uint256 timesTamp,      
+                                                                                address airline,
+                                                                                string memory departure,
+                                                                                string memory arrival,
+                                                                                bytes32 flight
+                                                                            );
+    function getFlightAirline(bytes32 flightKey) virtual public view returns(address);
+    function getAirlineFund(address airlineAddress) virtual external view returns(uint256);
+    //passenger
+    function buy (bytes32 flightKey, address buyerAddress, uint256 insuranceValue) virtual external payable returns(address userAddress, bytes32[] memory insurances);
+    function getInsuranceValue (bytes32 flightKey, address insuranceOwner) virtual external view returns(uint256 insuranceValue);
+    function creditInsuree (address insuree, bytes32 flightKey, uint256 amountToCredit) virtual external payable;
+    function pay (address insuree, uint256 amountToPay) virtual external payable;
+    function getInsureeCredits (address insureeAddress) virtual external view returns(uint256 insureeCredits);
+    function getInsuranceData (bytes32 insuranceKey) virtual public view returns(bool insuranceStatus, bytes32 flightKey, uint256 flightValue, address passengerAddress);
 }  
     
 

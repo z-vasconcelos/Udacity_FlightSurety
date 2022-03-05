@@ -25,6 +25,7 @@ import './flightsurety.css';
     let airlinesInfo = {};
     //Organized by Flights
     let fixedFlightList = [];
+    let fixedFlightListByFlightKeys = [];
     //Organized by Departures
     let fixedDepartureList = [];
     //Organized by Arrivals
@@ -32,24 +33,22 @@ import './flightsurety.css';
 
     let contract = new Contract('localhost', () => {
 
+        //Default
+        //firstAirline to Register Flight
+        DOM.elid('register-flight').value = contract.accounts[0];
+        //3rd account [] to be an insuree
+        DOM.elid('insurance-buyer').value = contract.accounts[3];
+
         // Read transaction
         contract.isOperational((error, result) => {
             console.log(error,result);
             display('Operational Status', 'Check if contract is operational', [ { label: 'Operational Status', error: error, value: result} ]);
         });
 
-        // contract.getAirlines((error, result) => {
-        //     if(error){
-        //         console.log(error);
-        //     }
-        //     //console.log(result);
-        //     let baseAirline = result[0];         
-        // });
+        //get available flight data
+        getFlightData();   
 
-        getFlightData();
-
-        //Set firstAitline as Default to register flights
-        DOM.elid('register-flight').value = contract.owner;     
+        ////////////////////////------ Oracles ------////////////////////////
 
         //User-submitted transaction
         DOM.elid('submit-oracle').addEventListener('click', () => {
@@ -59,24 +58,156 @@ import './flightsurety.css';
             contract.fetchFlightStatus(airline, flight, (error, result) => {
                 display('Oracles', 'Trigger oracles', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp} ]);
                 //console.log("fetchFlightStatus", result);
-                location.reload();
+                getFlightData();
             });
         })
 
-        // Get Addresses
-        DOM.elid('bt-get-addresses').addEventListener('click', () => {
-            console.log(contract.getAccounts());
-        })
+        /********************************************************************************************/
+        /*                                       INSURANCE                                           */
+        /********************************************************************************************/
 
-        // Get Contract Balance
-        DOM.elid('bt-get-contract-balance').addEventListener('click', () => {
-            contract.getContractBalance((error, result) => {
+        DOM.elid('bt-buy-insurance').addEventListener('click', () => {
+            let buyer = DOM.elid('insurance-buyer').value;
+            let flight = DOM.elid('insurance-flight').value;
+            let insuranceValue = DOM.elid('insurance-value').value;
+
+            let flightKey;
+            let airlineAddress = fixedFlightList[flight].airline;
+            let timestamp = fixedFlightList[flight].timesTamp;
+
+            contract.getFlightKey(airlineAddress, flight, timestamp, (error, result) => {
+                flightKey = result;
+                contract.buyInsurance(buyer, flightKey, insuranceValue, (error, result) => {
+                    display('Insurance', 'Insurance Aquired', [ { label: 'Insurance Aquired', error: error, value: result.buyerAddress  + ' aquired ' + result.valueToSend + ' ether '} ]);
+                    if(error){
+                        console.log(error);
+                    }
+                    console.log("buyInsurance", result);
+                });
+            });           
+        });
+
+        DOM.elid('bt-insurance-flight-menu').addEventListener('click', () => {
+            let buyer = DOM.elid('insurance-buyer-address').value;
+            let insurances;
+
+            if(buyer != ""){
+                contract.getPassengerInsurances(buyer, (error, result) => {
+
+                    const div = document.querySelector('#dropdown-insuranced-flights');
+                    div.innerHTML = "";
+
+                    if(error){
+                        console.log(error);
+                    } else {
+                        insurances = result;
+    
+                        //console.log(insurances);
+
+                        insurances.forEach(insurance => {
+                            
+                            contract.getInsuranceData(insurance, (error, result) => {
+                                if(error){
+                                    console.log(error);
+                                }
+                                console.log("getInsuranceData", result);
+
+                                let flightName = fixedFlightListByFlightKeys[result.flightKey].flightCode;
+                                div.innerHTML += `<a class="dropdown-item insurance-flight-menu">${flightName}</a>`; 
+                            });          
+                        })
+                    }                
+                });  
+            } else {
+                alert("Insert an buyer id to continue");
+            }
+            
+            DOM.elid('wallet-buyer-withdraw-address').innerHTML = buyer;
+        });
+
+        //Get Clicked Insured Flight
+        $(document).on('click', '.insurance-flight-menu a', function(element) {
+            let buyer = DOM.elid('insurance-buyer-address').value;
+            let airlineName = element.currentTarget.innerHTML;
+
+            console.log("insurance-flight-menu");
+            console.log(buyer);
+            console.log(fixedFlightList[airlineName]);
+
+            DOM.elid('insurance-flight-status').innerHTML = fixedFlightList[airlineName].statusCode;
+                                
+            switch (fixedFlightList[airlineName].statusCode) {
+                case "0":
+                    DOM.elid('insurance-status').innerHTML = "Waiting a Flight update to proccess your insurance";
+                    break;
+                case "10":
+                    DOM.elid('insurance-status').innerHTML = "The Flight arrived in time. Your insurance has ended";
+                    break; 
+                case "20":
+                    DOM.elid('insurance-status').innerHTML = "The Flight delayed due to an Airline problem. The insurance payout is credited in yout account";
+                    contract.creditInsuree(fixedFlightList[airlineName].flight, buyer, (error, result) => {
+                        if(error){
+                            console.log(error);
+                        }
+                        console.log(result);;
+                    });  
+                    break;
+                case "30":
+                    DOM.elid('insurance-status').innerHTML = "The Flight delayed due to a Weather problem. The insurance does not covered this type of delay. Your insurance has ended";
+                    break;
+                case "40":
+                    DOM.elid('insurance-status').innerHTML = "The Flight delayed due to Technical problems. The insurance does not covered this type of delay. Your insurance has ended";
+                    break; 
+                case "50":
+                    DOM.elid('insurance-status').innerHTML = "The Flight delayed due to an issue not covered this type of delay. Your insurance has ended";
+                    break; 
+                default:
+                    DOM.elid('insurance-status').innerHTML = "Insurance status not Updaited. Wait for a Flight update to check again your insurance";
+                    break;
+            }
+        });
+
+        //Check Passenger Credits
+        DOM.elid('bt-get-credit').addEventListener('click', () => {
+            let buyer = DOM.elid('wallet-buyer-address').value;
+
+            contract.getInsureeCredits(buyer, (error, result) => {
                 if(error){
                     console.log(error);
                 }
-                console.log(result);
-            });
-        })
+                console.log("Credit: ", result);
+                DOM.elid('wallet-buyer-withdraw-address').value = buyer;
+
+                DOM.elid('available-credit').innerHTML = result;
+
+                DOM.elid('wallet-withdraw-amount').value = result;
+            });            
+        });
+
+        //WithDraw Passenger Credits
+        DOM.elid('bt-withdraw-credit').addEventListener('click', () => {
+            let buyer = DOM.elid('wallet-buyer-withdraw-address').value;
+            let amountToWithdraw = DOM.elid('wallet-withdraw-amount').value;
+
+            contract.payInsuree(buyer, amountToWithdraw, (error, result) => {
+                if(error){
+                    console.log("payInsuree", error);
+                    DOM.elid('witdraw-value').innerHTML = "Coul not withdraw";
+                } else {
+                    console.log("Withdraw: ", result.amountToPay);
+                    DOM.elid('witdraw-value').innerHTML = amountToWithdraw;
+                }
+                display('Withdraw', 'Withdraw Response', [ { label: 'Withdraw Return', error: error, value: result.insuree  + ' withdrew ' + result.amountToPay + ' ether '} ]);          
+
+                //After Withdraw, update amount of available credits
+                contract.getInsureeCredits(buyer, (error, result) => {
+                    if(error){
+                        console.log("getInsureeCredits", error);
+                    }    
+                    DOM.elid('available-credit').innerHTML = result;
+                });       
+            });            
+        });      
 
         /********************************************************************************************/
         /*                                       AIRLINES                                           */
@@ -87,7 +218,7 @@ import './flightsurety.css';
             let airlineToRegister = DOM.elid('register-airline').value;
             let airlineName = DOM.elid('airline-name').value;
             contract.registerAirline(airlineToRegister, airlineName, (error, result) => {
-                display('Airline', 'Register Airline', [ { label: 'Register Airline', error: error, value: result} ]);
+                display('Airline', 'Register Airline', [ { label: 'Register Airline', error: error, value: "Registered " + result.airlineToRegisterAddress + " as " + result.airlineName} ]);
             });
         })
 
@@ -100,7 +231,7 @@ import './flightsurety.css';
                 if(error){
                     console.log(error);
                 }
-                console.log(result);
+                console.log("getAirlines", result);
                 let airlines = result;
 
                 airlines.forEach(el => {
@@ -135,7 +266,7 @@ import './flightsurety.css';
             let flights = [];
 
             contract.getFlights(airlineName, (error, result) => {
-                console.log(result);
+                console.log("getFlights", result);
                 
                 flights = result;
                 let flighNames = flights.flightNames;
@@ -146,7 +277,7 @@ import './flightsurety.css';
                 div.innerHTML = "";
 
                 flighNames.forEach(el => {
-                    //console.log(el);
+                    //console.log("flighNames.forEach", el);
                     div.innerHTML += `<a class="dropdown-item drop-flight-selector">${el}</a>`;
                 });
 
@@ -168,73 +299,20 @@ import './flightsurety.css';
             //Set flightName to the Droplist
             DOM.elid('bt-flight-menu').innerHTML = flightName;
 
-            let statusCode = fixedFlightList[flightName].statusCode;
-
-            DOM.elid('flight-status').innerHTML = statusCode + " - " + flightStatus[statusCode];    
-
+            //Get flight status from contract
             // contract.getFlightStatus(flightKey, (error, result) => {
             //     console.log("getFlightStatus: ", result);
             //     DOM.elid('flight-status').innerHTML = result + " - " + flightStatus[result];
             // });
+
+            //Get flight status from information when loading page
+            let statusCode = fixedFlightList[flightName].statusCode;
+
+            DOM.elid('flight-status').innerHTML = statusCode + " - " + flightStatus[statusCode];
+
+            //assign airline name to the field that the passenger can use to buy insurance
+            DOM.elid('insurance-flight').value = flightName;
         });      
-
-        //Get all Flights Data
-        function getFlightData (){
-            contract.getAirlines((error, airlineList) => {
-
-                let flightInfo = {};
-
-                airlineList.forEach(airline => {
-
-                    airlinesInfo[airline] = {};
-                    let airlineFlights = {};
-
-                    contract.getAirlineByName(airline, (error, airlineAddress) => {
-
-                        //console.log(airlineAddress);
-                        contract.getFlights(airlineAddress, (error, flights) => {
-                            
-                            let flightNames = flights.flightNames;
-                            let flighCodes = flights.flightCodes;
-
-                            for(let i = 0; i < flighCodes.length; i++){
-                                contract.getFlightsData(flighCodes[i], (error, flightData) => {
-
-                                    //list of flight data organized by Airline
-                                    airlineFlights[flightNames[i]] = flightData;
-                                    fixedFlightList[flightNames[i]] = flightData;
-
-                                    //list of flight data organized by Departure
-                                    let departureInfo = [];
-                                    departureInfo[flightData.departure] = flightData;
-                                    if (fixedDepartureList[flightData.departure]) {
-                                        fixedDepartureList[flightData.departure].push(departureInfo);
-                                    } else {
-                                        fixedDepartureList[flightData.departure] = [departureInfo];
-                                    }
-
-                                    //list of flight data organized by Arrival
-                                    let arrivalInfo = [];
-                                    arrivalInfo[flightData.arrival] = flightData;
-
-                                    if (fixedArrivalList[flightData.arrival]) {
-                                        fixedArrivalList[flightData.arrival].push(arrivalInfo);
-                                    } else {
-                                        fixedArrivalList[flightData.arrival] = [arrivalInfo];
-                                    }
-                                });
-                            }; 
-                        }); 
-                    });    
-                    airlinesInfo[airline] = airlineFlights;              
-                });
-                console.log("airlinesInfo: ", airlinesInfo);
-                console.log("fixedFlightList: ", fixedFlightList);
-                console.log("fixedDepartureList", fixedDepartureList);
-                console.log("fixedArrivalList", fixedArrivalList);
-            });
-            
-        }
 
         //Populate Fligth DropList Arrange by Available Flights
         DOM.elid('bt-flight-menuByName').addEventListener('click', () => {
@@ -243,8 +321,8 @@ import './flightsurety.css';
             div.innerHTML = "";
 
             for (var f in fixedFlightList){
-                //console.log(fixedFlightList[f][1]);
-                div.innerHTML += `<a class="dropdown-item drop-flight-menuByName-selector">${fixedFlightList[f][1]}</a>`;
+                //console.log(fixedFlightList[f]);
+                div.innerHTML += `<a class="dropdown-item drop-flight-menuByName-selector">${fixedFlightList[f][0]}</a>`;
             }
         });
 
@@ -257,7 +335,11 @@ import './flightsurety.css';
 
             let statusCode = fixedFlightList[flightName].statusCode;
 
-            DOM.elid('flight-status-af').innerHTML = statusCode + " - " + flightStatus[statusCode];        
+            //print status code
+            DOM.elid('flight-status-af').innerHTML = statusCode + " - " + flightStatus[statusCode];  
+            
+            //assign airline name to the field that the passenger can use to buy insurance
+            DOM.elid('insurance-flight').value = flightName;
         });
 
         //Populate Fligth DropList Arrange by Available Departures
@@ -266,8 +348,10 @@ import './flightsurety.css';
             const div = document.querySelector('#dropdown-flight-menuByDeparture');
             div.innerHTML = "";
 
+            console.log("fixedDepartureList 2");
             for (var f in fixedDepartureList){
-                div.innerHTML += `<a class="dropdown-item drop-flight-menuByName-selector">${fixedDepartureList[f][0][f][5]}</a>`;
+                console.log(fixedDepartureList[f][0][f]);
+                div.innerHTML += `<a class="dropdown-item drop-flight-menuByName-selector">${fixedDepartureList[f][0][f].departure}</a>`;
             }
         });
 
@@ -279,7 +363,7 @@ import './flightsurety.css';
             div.innerHTML = "";
 
             fixedDepartureList[departure].forEach(dep => {
-                div.innerHTML += `<a class="dropdown-item drop-flight-menuByDeparture-selector">${dep[departure][1]}</a>`;
+                div.innerHTML += `<a class="dropdown-item drop-flight-menuByDeparture-selector">${dep[departure][0]}</a>`;
             });
 
             const divFlights = document.querySelector('#bt-flight-menuByDeparture-selectFlight');
@@ -295,35 +379,11 @@ import './flightsurety.css';
 
             let statusCode = fixedFlightList[flightName].statusCode;
 
-            DOM.elid('flight-status-ad').innerHTML = statusCode + " - " + flightStatus[statusCode];            
+            DOM.elid('flight-status-ad').innerHTML = statusCode + " - " + flightStatus[statusCode]; 
+            
+            //assign airline name to the field that the passenger can use to buy insurance
+            DOM.elid('insurance-flight').value = flightName;
         });
-
-        //Populate Fligth DropList Arrange by Available Arrival
-        // DOM.elid('bt-flight-menuByArrival').addEventListener('click', () => {
-
-        //     const div = document.querySelector('#dropdown-flight-menuByArrival');
-        //     div.innerHTML = "";
-
-        //     for (var f in fixedArrivalList){
-        //         console.log(fixedArrivalList[f][0][f][6]);
-        //         div.innerHTML += `<a class="dropdown-item drop-flight-menuByArrival-selector">${fixedArrivalList[f][0][f][6]}</a>`;
-        //     }
-        // });
-
-        //Get Clicked Arrival Name
-        // $(document).on('click', '.flight-menuByArrival a', function(element) {
-        //     let departure = element.currentTarget.innerHTML;
-
-        //     const div = document.querySelector('#dropdown-flight-menuByArrival-selectFlight');
-        //     div.innerHTML = "";
-
-        //     fixedDepartureList[departure].forEach(dep => {
-        //         div.innerHTML += `<a class="dropdown-item drop-flight-menuByArrival-selector">${dep[departure][1]}</a>`;
-        //     });
-
-        //     const divFlights = document.querySelector('#bt-flight-menuByArrival-selectFlight');
-        //     divFlights.disabled = false;           
-        // });
 
         // Is Airline Registered?
         DOM.elid('bt-check-register-airline').addEventListener('click', () => {
@@ -334,15 +394,25 @@ import './flightsurety.css';
             });
         });
 
+        // Is Airline Validated?
+        DOM.elid('bt-check-register-airline').addEventListener('click', () => {
+            let airlineAddress = DOM.elid('check-register-airline').value;
+            // Verify if airline is registered
+            contract.isAirlineValid(airlineAddress, (error, result) => {
+                //console.log("Is Airline Validated? -> " + result);
+                DOM.elid('isValidated').innerHTML = result;
+            });
+        });
+
+        ////////////////////////------ Airline Ended ------////////////////////////
+
         ////////////////////////------ Vote ------////////////////////////
+
         DOM.elid('bt-voteIn-airline').addEventListener('click', () => {
             let airlineAddress = DOM.elid('voteIn-airline').value;
             // Register Airline
             contract.voteInAirline(airlineAddress, (error, result) => {
-                display('Airline', 'Voting', [ { label: 'Vote in Airline', error: error, value: result.airlineToRegisterAddress} ]);
-            });
-            contract.voteInAirlineDebug(airlineAddress, (error, result) => {
-                console.log(result);
+                display('Airline', 'Voting', [ { label: 'Vote in Airline', error: error, value: "Voted in: " + result.votedAirline} ]);
             });
         });
 
@@ -365,40 +435,17 @@ import './flightsurety.css';
             });
         });
 
+        ////////////////////////------ Vote Ended ------////////////////////////
 
-        // Is Airline Validated?
-        DOM.elid('bt-check-register-airline').addEventListener('click', () => {
-            let airlineAddress = DOM.elid('check-register-airline').value;
-            // Verify if airline is registered
-            contract.isAirlineValid(airlineAddress, (error, result) => {
-                //console.log("Is Airline Validated? -> " + result);
-                DOM.elid('isValidated').innerHTML = result;
-            });
-        });
-
-        // Is Airline Validated?
-        DOM.elid('bt-check-register-airline').addEventListener('click', () => {
-            let airlineAddress = DOM.elid('check-register-airline').value;
-            // Verify if airline is registered
-            contract.isAirlineValid(airlineAddress, (error, result) => {
-                //console.log("Is Airline Validated? -> " + result);
-                DOM.elid('isValidated').innerHTML = result;
-            });
-        });
 
         ////////////////////////------ Fund ------////////////////////////
+
         DOM.elid('bt-fund-airline').addEventListener('click', () => {
             // Register Airline
             let airlineAddress = DOM.elid('fund-airline').value;
             let fundValue = DOM.elid('fund-airline-value').value;
             contract.fundAirline(airlineAddress, fundValue, (error, result) => {
-                display('Airline', 'Fund', [ { label: 'Fund Airline', error: error, value: result} ]);
-            });
-            contract.fundAirlineDebug(airlineAddress, fundValue, (error, result) => {
-                console.log("Fund Result:");
-                console.log(result);
-                console.log("Fund Error:");
-                console.log(error);
+                display('Airline', 'Fund', [ { label: 'Fund Airline', error: error, value: result.airlineToFund + " was funded with " + result.fund + " ether"} ]);
             });
         });
 
@@ -430,27 +477,17 @@ import './flightsurety.css';
                 console.log(error);
                 console.log(result);
                 display('Flight', 'Register', [ { label: 'Register Flight', error: error, value: result} ]);
+
+                //Update FlightData
+                getFlightData();
             });
 
             DOM.elid('fetch-flight-number').value = flightCode;
             DOM.elid('fetch-flight-airline').value = airlineAddress;
         });
 
-        //Get Flights from Airline with AirlineAddress
-        DOM.elid('bt-get-airline-flights').addEventListener('click', () => {
-            let airlineAddress = DOM.elid('get-airline-flights').value;
-            let airlineFlights = [];
-            contract.getFlights(airlineAddress, (error, result) => {
-                if(error){
-                    console.log(error);
-                } else {
-                    airlineFlights = result;
-                    console.log(airlineFlights);
-                }
-            });
-        });
+        ////////////////////////------ Helper-Debug ------////////////////////////
 
-        ////////////////////////------ Helper ------////////////////////////
         DOM.elid('airline-mode').addEventListener('click', () => {
             let airlineSection = DOM.elid('airline-section');
             let passengerSection = DOM.elid('passenger-section');
@@ -465,6 +502,8 @@ import './flightsurety.css';
 
             passengerSection.classList.remove('hidden');
             airlineSection.classList.add('hidden');
+
+            location.reload();
         });
 
         DOM.elid('debug-mode').addEventListener('click', () => {
@@ -477,6 +516,95 @@ import './flightsurety.css';
                 debugSection.classList.add('hidden');
             }
         });
+
+        // Get Contract Balance
+        DOM.elid('bt-get-contract-balance').addEventListener('click', () => {
+            contract.getContractBalance((error, result) => {
+                if(error){
+                    console.log(error);
+                }
+                console.log("Contract Balance: " + result);
+            });
+        });
+
+        // Get Addresses
+        DOM.elid('bt-get-addresses').addEventListener('click', () => {
+            console.log(contract.getAccounts());
+        })
+
+        //Console log passenger list of insurances
+        DOM.elid('bt-debug-insurance').addEventListener('click', () => {
+            let buyer = DOM.elid('debug-insurance-buyerAddress').value;
+
+            contract.getPassengerInsurances(buyer, (error, result) => {
+                if(error){
+                    console.log(error);
+                }
+                console.log(result);;
+            });            
+        });
+
+        ////////////////////////------ Functions ------////////////////////////
+
+        //Get all Flights Data
+        function getFlightData (){
+            contract.getAirlines((error, airlineList) => {
+
+                let flightInfo = {};
+
+                airlineList.forEach(airline => {
+
+                    airlinesInfo[airline] = {};
+                    let airlineFlights = {};
+
+                    contract.getAirlineByName(airline, (error, airlineAddress) => {
+
+                        //console.log(airlineAddress);
+                        contract.getFlights(airlineAddress, (error, flights) => {
+                            
+                            let flightNames = flights.flightNames;
+                            let flighCodes = flights.flightCodes;
+
+                            for(let i = 0; i < flighCodes.length; i++){
+                                contract.getFlightsData(flighCodes[i], (error, flightData) => {
+
+                                    //list of flight data organized by Airline
+                                    airlineFlights[flightNames[i]] = flightData;
+                                    fixedFlightList[flightNames[i]] = flightData;
+                                    fixedFlightListByFlightKeys[flighCodes[i]] = flightData;
+
+                                    //list of flight data organized by Departure
+                                    let departureInfo = [];
+                                    departureInfo[flightData.departure] = flightData;
+                                    if (fixedDepartureList[flightData.departure]) {
+                                        fixedDepartureList[flightData.departure].push(departureInfo);
+                                    } else {
+                                        fixedDepartureList[flightData.departure] = [departureInfo];
+                                    }
+
+                                    //list of flight data organized by Arrival
+                                    let arrivalInfo = [];
+                                    arrivalInfo[flightData.arrival] = flightData;
+
+                                    if (fixedArrivalList[flightData.arrival]) {
+                                        fixedArrivalList[flightData.arrival].push(arrivalInfo);
+                                    } else {
+                                        fixedArrivalList[flightData.arrival] = [arrivalInfo];
+                                    }
+                                });
+                            }; 
+                        }); 
+                    });    
+                    airlinesInfo[airline] = airlineFlights;              
+                });
+                console.log("airlinesInfo: ", airlinesInfo);
+                console.log("fixedFlightList: ", fixedFlightList);
+                console.log("fixedFlightListByFlightKeys: ", fixedFlightListByFlightKeys);
+                console.log("fixedDepartureList", fixedDepartureList);
+                console.log("fixedArrivalList", fixedArrivalList);
+            });
+            
+        }
     });    
 })();
 

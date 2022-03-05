@@ -49,6 +49,73 @@ export default class Contract {
     }
 
     /********************************************************************************************/
+    /*                                       INSURANCE                                           */
+    /********************************************************************************************/
+    buyInsurance(buyer, flightKey, insuranceValue, callback) {
+        let self = this;
+        let payload = {
+            flightUniqueKey: flightKey,
+            valueToSend: insuranceValue,
+            buyerAddress: buyer
+        }
+        self.flightSuretyApp.methods
+            .buyInsurance(payload.flightUniqueKey)
+            .send({from: payload.buyerAddress, value: self.web3.utils.toWei(payload.valueToSend.toString(), "ether"), gas: 3000000}, (error, result) => {
+                callback(error, payload);
+            });
+        //other owner to send in From -> this.accounts[8]
+    }
+
+    getPassengerInsurances(insuranceOwner, callback){
+        let self = this;
+        self.flightSuretyData.methods
+            .getPassengerInsurances(insuranceOwner)
+            .call(callback);
+    }
+
+    getInsuranceData(insuranceOwner, callback){
+        let self = this;
+        self.flightSuretyData.methods
+            .getInsuranceData(insuranceOwner)
+            .call(callback);
+    }
+
+    getInsureeCredits(insuranceOwner, callback){
+        let self = this;
+        self.flightSuretyApp.methods
+            .getInsureeAvailableCredits()
+            .call({from: insuranceOwner}, callback);
+    }
+
+    creditInsuree(delayedFlight, insureeAddress, callback) {
+        let self = this;
+        let payload = {
+            flightKey: delayedFlight,
+            insuree: insureeAddress
+        }
+        self.flightSuretyApp.methods
+            .creditInsuree(payload.flightKey, payload.insuree)
+            .send({from: payload.insuree, gas: 3000000},(error, result) => {
+                callback(error, payload);
+            });
+        //other owner to send in From -> this.accounts[8]
+    }
+
+    payInsuree(insuranceOwner, amount, callback) {
+        let self = this;
+        let payload = {
+            insuree: insuranceOwner,
+            amountToPay: amount,
+        }
+        self.flightSuretyApp.methods
+            .payInsuree(payload.amountToPay)
+            .send({from: payload.insuree, gas: 3000000},(error, result) => {
+                callback(error, payload);
+            });
+        //other owner to send in From -> this.accounts[8]
+    }
+
+    /********************************************************************************************/
     /*                                       AIRLINES                                           */
     /********************************************************************************************/
     registerAirline(airlineToRegister, nameOfAirline, callback) {
@@ -60,7 +127,7 @@ export default class Contract {
         self.flightSuretyApp.methods
             .registerAirline(payload.airlineToRegisterAddress, payload.airlineName.toString())
             .send({from: self.owner, gas: 3000000}, (error, result) => {
-                callback(error, result);
+                callback(error, payload);
             });
     }
 
@@ -105,28 +172,15 @@ export default class Contract {
     }
 
     ////////////////////////------ Vote ------////////////////////////
-    voteInAirline(airlineToRegister, callback) {
+    voteInAirline(airlineToVote, callback) {
         let self = this;
         let payload = {
-            airlineToRegisterAddress: airlineToRegister
+            votedAirline: airlineToVote
         } 
         self.flightSuretyApp.methods
-            .vote(payload.airlineToRegisterAddress)
+            .vote(payload.votedAirline)
             .send({from: self.owner, gas: 3000000}, (error, result) => {
                 callback(error, payload);
-            });
-        //other owner to send in From -> this.accounts[8]
-    }
-
-    voteInAirlineDebug(airlineToRegister, callback) {
-        let self = this;
-        let payload = {
-            airlineToRegisterAddress: airlineToRegister
-        } 
-        self.flightSuretyApp.methods
-            .vote(payload.airlineToRegisterAddress)
-            .call({ from: self.owner}, (error, result) => {
-                callback(error, result);
             });
         //other owner to send in From -> this.accounts[8]
     }
@@ -161,31 +215,9 @@ export default class Contract {
         self.flightSuretyApp.methods
             .fund()
             .send({from: payload.airlineToFund, value: self.web3.utils.toWei(payload.fund.toString(), "ether"), gas: 3000000}, (error, result) => {
-                callback(error, result);
+                callback(error, payload);
             });
         //other owner to send in From -> this.accounts[8]
-    }
-
-    //Fund Debug
-    fundAirlineDebug(airlineAddress, fundValue, callback) {
-        let self = this;
-        let payload = {
-            airlineToFund: airlineAddress,
-            fund: fundValue
-        }
-        self.flightSuretyApp.methods
-            .fund()
-            .call({from: payload.airlineToFund, value: self.web3.utils.toWei(payload.fund.toString(), 'ether')}, (error, result) => {
-                callback(error, result);
-            });
-        //other owner to send in From -> this.accounts[8]
-    }
-
-    getContractBalance(callback) {
-        let self = this;
-        self.flightSuretyData.methods
-            .getContractBalance()
-            .call({from: self.owner}, callback);
     }
 
     ////////////////////////------ Flights ------////////////////////////
@@ -247,8 +279,29 @@ export default class Contract {
         }
         self.flightSuretyApp.methods
             .fetchFlightStatus(payload.airline, payload.flight, payload.timestamp)
-            .send({from: self.owner}, (error, result) => {
+            .send({from: payload.airline}, (error, result) => {
                 callback(error, payload);
             });
+    }
+
+    getFlightKey(airlineAddress, flightName, timestamp,  callback){
+        let self = this;
+        let payload = {
+            airline: airlineAddress,
+            flight: flightName,
+            time: timestamp
+        }
+        self.flightSuretyData.methods
+            .getFlightKey(payload.airline, payload.flight, payload.time)
+            .call({from: self.owner}, callback);
+    }
+
+    ////////////////////////------ Debug ------////////////////////////
+
+    getContractBalance(callback) {
+        let self = this;
+        self.flightSuretyData.methods
+            .getContractBalance()
+            .call({from: self.owner}, callback);
     }
 }
