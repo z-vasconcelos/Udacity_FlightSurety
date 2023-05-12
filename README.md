@@ -64,30 +64,28 @@ Deploy the contents of the ./dapp folder
 *   For this test will be necessary a high number of accounts in ganache
 *   The tests were made using `ganache-cli --accounts=100` 
 
-    OK - Airline Contract Initialization
-        First airline is registered when contract is deployed.
-    OK - Multiparty Consensus 
-        Only existing airline may register a new airline until there are at least four airlines registered
-        Registration of fifth and subsequent airlines requires multi-party consensus of 50% of registered airlines
-    OK - Airline Ante
-        Airline can be registered, but does not participate in contract until it submits funding of 10 ether (make sure it is not 10 wei)
+    OK - Airline Contract Initialization<br />
+        First airline is registered when contract is deployed.<br /><br />
+    OK - Multiparty Consensus<br />
+        Only existing airline may register a new airline until there are at least four airlines registered<br />
+        Registration of fifth and subsequent airlines requires multi-party consensus of 50% of registered airlines<br /><br />
+    OK - Airline Ante<br />
+        Airline can be registered, but does not participate in contract until it submits funding of 10 ether (make sure it is not 10 wei)<br />
 
 ## Passenger   
 * Can be partially tested with `truffle test ./test/rubricPassenger.js`
 
-    OK - Passenger Payment
-    Passengers may pay up to 1 ether for purchasing flight insurance.
-
-    OK - Passenger Repayment
-    If flight is delayed due to airline fault, passenger receives credit of 1.5X the amount they paid
+    OK - Passenger Payment<br />
+    Passengers may pay up to 1 ether for purchasing flight insurance.<br /><br />
+    OK - Passenger Repayment<br />
+    If flight is delayed due to airline fault, passenger receives credit of 1.5X the amount they paid<br />
 
 * Needs to be tested a functional test running the dapp
     
-    OK - Passenger Withdraw
-    Passenger can withdraw any funds owed to them as a result of receiving credit for insurance payout
-
-    Review (I am not sure if I got what had to be done here) - Insurance Payouts
-    Insurance payouts are not sent directly to passenger’s wallet
+    OK - Passenger Withdraw<br />
+    Passenger can withdraw any funds owed to them as a result of receiving credit for insurance payout<br /><br />
+    Review (I am not sure if I got what had to be done here) - Insurance Payouts<br />
+    Insurance payouts are not sent directly to passenger’s wallet<br />
 
 # To call functions using truffle console, first set:
     let accounts = await web3.eth.getAccounts()
